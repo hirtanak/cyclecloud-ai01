@@ -1,0 +1,13 @@
+[Unit]
+Description=Jupyter Lab
+
+[Service]
+Type=simple
+WorkingDirectory=/root/
+ExecStart=${HOMEDIR}/anaconda/envs/${ANACONDAENVNAME}/bin/jupyter-lab --allow-root --config=${HOMEDIR}/.jupyter/jupyter_notebook_config.py
+ExecStop=/bin/kill ${MAINPID}
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

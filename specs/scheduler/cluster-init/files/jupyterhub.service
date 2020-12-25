@@ -1,0 +1,13 @@
+[Unit]
+Description=Jupyter Hub
+
+[Service]
+Type=simple
+WorkingDirectory=/root/
+ExecStart=${HOMEDIR}/anaconda/envs/${ANACONDAENVNAME}/bin/jupyterhub --config=${HOMEDIR}/.jupyter/jupyterhub_config.py --debug
+ExecStop=/bin/kill ${MAINPID}
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
