@@ -43,7 +43,7 @@ fi
 declare i && i=1
 declare line 
 declare CNT && CNT=0
-ls /home | awk '{ print $1 }' > ${HOMEDIR}/shell
+ls /shared/home | awk '{ print $1 }' > ${HOMEDIR}/shell
 awk -F ',' '{print $1,$2}' ${HOMEDIR}/shell 
 sed '/^$/d' ${HOMEDIR}/shell
 chown ${CUSER}:${CUSER} ${HOMEDIR}/shell
@@ -53,18 +53,11 @@ while [[ $i -le $CNT ]]; do
    echo "cheking $i user"
    cat ${HOMEDIR}/shell
    line=$(sed -n $i\P ${HOMEDIR}/shell)
-   usermod ${line} -s /bin/bash
+   usermod ${line} -s /bin/bash | exit 0
    let i++
 done
 
-# set up requirement: jupyterhub
-if [[ ${JUPYTERHUB_INSTALL} == "True" ]] || [[ ${JUPYTERHUB_INSTALL} == "true" ]]; then
-    apt-get install -y npm
-    npm install -g configurable-http-proxy
-fi
-
 # annaconda install
-#set +u
 if [[ ! -f ${HOMEDIR}/anaconda.sh ]]; then 
    wget -nv https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_64.sh -O ${HOMEDIR}/anaconda.sh
    chown ${CUSER}:${CUSER} ${HOMEDIR}/anaconda.sh
@@ -75,19 +68,19 @@ fi
 
 # env settingsg
 set +eu
-CMD1=$(grep codna ${HOMEDIR}/.bashrc)
-if [[ -z "${CMD1}" ]]; then
+CMD1=$(grep codna ${HOMEDIR}/.bashrc | head -1)
+if [[ -z ${CMD1} ]]; then
    (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh") >> ${HOMEDIR}/.bashrc
 fi
 chmod +x ${HOMEDIR}/anaconda/etc/profile.d/conda.sh
 set -eu
 
 # anaconda setting
-set +u
 ANACONDAENVNAME=$(jetpack config ANACONDAENVNAME)
 ANACONDAPYTHON_VERSION=$(jetpack config ANACONDAPYTHON_VERSION)
 ANACONDAPACKAGE=$(jetpack config ANACONDAPACKAGE)
 
+set +u
 CMD2=$(${HOMEDIR}/anaconda/bin/conda info -e | grep "\(${ANACONDAENVNAME}\)") | exit 0
 
 if [[ ${CMD2} == "base" ]]; then
@@ -97,20 +90,12 @@ else
    # conda create -n yourenvname python=x.x anaconda
    mkdir -p /root/.conda
    chown -R ${CUSER}:${CUSER} /root/
-   # set up requirement: jupyterhub
-   if [[ ${JUPYTERHUB_INSTALL} == "True" ]] || [[ ${JUPYTERHUB_INSTALL} == "true" ]]; then
-       ${HOMEDIR}/anaconda/bin/conda create -n ${ANACONDAENVNAME} python=${ANACONDAPYTHON_VERSION} jupyterlab ${ANACONDAPACKAGE}
-	# ${HOMEDIR}/anaconda/bin/conda create -n ${ANACONDAENVNAME} python=${ANACONDAPYTHON_VERSION} jupyterlab jupyterhub nodejs ${ANACONDAPACKAGE}
-#       ${HOMEDIR}/anaconda/bin/conda activate ${ANACONDAENVNAME} 
-#       ${HOMEDIR}/anaconda/bin/conda install -c conda-forge sudospawner
-#        ${HOMEDIR}/anaconda/bin/conda install -n ${ANACONDAENVNAME} -c conda-forge sudospawner
-#	${HOMEDIR}/anaconda/bin/conda update -n ${ANACONDAENVNAME} -c conda-forge sudospawner
-   else
-       # jupyterlabのみのインストール
-       ${HOMEDIR}/anaconda/bin/conda create -n ${ANACONDAENVNAME} python=${ANACONDAPYTHON_VERSION} jupyterlab ${ANACONDAPACKAGE}
-   fi
+   ${HOMEDIR}/anaconda/bin/conda create -n ${ANACONDAENVNAME} python=${ANACONDAPYTHON_VERSION} ${ANACONDAPACKAGE}
 fi
 set -u
+
+# 他のユーザでも利用できるように権限設定
+chmod -R 776 ${HOMEDIR}/anaconda
 
 
 popd

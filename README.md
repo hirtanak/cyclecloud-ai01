@@ -5,8 +5,11 @@
 Azure CyceCloudのインストールに関しては、[こちら](https://docs.microsoft.com/en-us/azure/cyclecloud/quickstart-install-cyclecloud) のドキュメントを参照してください。
 
 - Anaconda
-- Jupyerlab and Jupterhub
-
+- Jupyerlab
+  - SCRIPT USER設定による単体利用
+- Jupterhub
+  - マルチユーザ対応 (現在はAdminサポートのみ)
+- Jupyterlab ExtensionによるSlurmジョブサブミット対応
 
 ## テンプレート詳細
 AI開発向けのテンプレートになっています。
@@ -15,7 +18,7 @@ AI開発向けのテンプレートになっています。
 
 1. Slurmジョブスケジューラをschedulerノードにインストール
 1. H16r, H16r_Promo, HC44rs, HB60rs, HB120rs_v2などソルバー利用を想定した設定
-    - OpenLogic CentOS 7.6 HPC を利用 
+    - OpenLogic Ubuntu18.04 を利用 
 1. NFS設定されており、ホームディレクトリが永続ディスク設定。Executeノード（計算ノード）からNFSをマウント
 1. MasterノードのIPアドレスを固定設定
     - 一旦停止後、再度起動した場合にアクセスする先のIPアドレスが変更されない

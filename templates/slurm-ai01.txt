@@ -41,8 +41,9 @@ Autoscale = $Autoscale
         cyclecloud.exports.defaults.samba.enabled = false      
         cshared.server.legacy_links_disabled = true
 
-        # multi user settings
+        # User settings
         SCRIPTUSER = $SCRIPTUSER
+        JUPYTER_ADMIN= $JUPYTER_ADMIN
 	DESKTOP_INSTALL = $DESKTOP_INSTALL
 
         # solver configurations
@@ -50,9 +51,11 @@ Autoscale = $Autoscale
         ANACONDAPYTHON_VERSION = $configuration_Anaconda_python_version
         ANACONDAPACKAGE = $configuration_Anaconda_package
 	ANACONDAPACKAGE_SET = $Anaconda_package_set
+	# Jupyterlab 
+        JUPYTERLAB_VERSION = $JUPYTERLAB_VERSION
         JUPYTERLAB_PASS = $JUPYTERLAB_PASS
         JUPYTERLABTOKEN = $JUPYTERLABTOKEN
-	# Add Jupyter Hub
+	# Jupyter Hub
 	JUPYTERHUB_INSTALL = $JUPYTERHUB_INSTALL
 	JUPYTERHUB_USER_PASS = $JUPYTERHUB_USER_PASS
 
@@ -83,8 +86,10 @@ Autoscale = $Autoscale
     MachineType = $SchedulerMachineType
     ImageName = $SchedulerImageName
     IsReturnProxy = $ReturnProxy
+    Interruptible = $UseLowPrio
+    MaxPrice = $SpotMaxPrice
     AdditionalClusterInitSpecs = $SchedulerClusterInitSpecs
-    
+
         [[[configuration]]]
         cyclecloud.mounts.nfs_sched.disabled = true
         cyclecloud.mounts.nfs_shared.disabled = ${NFSType != "External"}
@@ -200,7 +205,7 @@ Order = 10
         [[[parameter This Template]]]
         HideLabel = true
         Config.Plugin = pico.widget.HtmlTemplateWidget
-        Config.Template := "<table role=\"presentation\"><tr><td></td></tr><tr><td><p>Slurm is a highly configurable open source workload manager. See the <a href=\"https://www.schedmd.com/\" target=\"_blank\">Slurm project site</a> for an overview.</p><p>Tensolflow/Horovod xxxxxxxxxxxxxxxxxxxxxxxxxx.</p><p>aaaaaaaaaaaaaaaaaaaaaaaaa</p></td></tr></table>"
+        Config.Template := "<table role=\"presentation\"><tr><td></td></tr><tr><td><p>Slurm is a highly configurable open source workload manager. See the <a href=\"https://www.schedmd.com/\" target=\"_blank\">Slurm project site</a> for an overview.</p><p>Support Tensolflow/Horovod DL framework.</p><p>JupyterLab and Jupyterhub support to AI development</p></td></tr></table>"
 
     [[parameters Script User]]
     Required = True
@@ -213,7 +218,7 @@ Order = 10
         defaultvalue = azureuser
 
     [[parameters Virtual Machines ]]
-    Description = "HPCパーティション：デフォルトのHPCパーティションのVMタイプを選択します。CPUを想定しています。HTCパーティション：HTCパーティションのVMタイプです。GPUを想定しています。NC_v3シリーズは東日本リージョンにありますが、ND, ND_v2などは米国West2リージョンなどを利用する必要があります。"
+    Description = "Scheduler Node: Anaconda, JupyterをインストールするノードのVMタイプを設定します。CPU/GPUに対応しています。"
     Order = 13
 
         [[[parameter Region]]]
@@ -226,6 +231,10 @@ Order = 10
         Description = The VM type for scheduler node
         ParameterType = Cloud.MachineType
         DefaultValue = Standard_D4as_v4
+
+    [[parameters Execute Virtual Machines ]]
+    Description = "Slurmで稼働するExecute NodeのVMタイプを設定ます。HPCパーティション：デフォルトのHPCパーティションのVMタイプを選択します。CPUを想定しています。HTCパーティション：HTCパーティションのVMタイプです。GPUを想定しています。NC_v3シリーズは東日本リージョンにありますが、ND, ND_v2などは米国West2リージョンなどを利用する必要があります。"
+    Order = 14
 
         [[[parameter HPCMachineType]]]
         Label = HPC VM Type
@@ -276,7 +285,7 @@ Order = 10
 
     [[parameters Auto-Scaling]]
     Description = "本テンプレートは、デフォルトでオートスケールがオンになっています。計算をSlurmに投入すると自動的に計算ノードが作成され、計算実行します。Slurmでもつパーテーションごとの最大コア値を設定します>。格安なスポットインスタンスもご利用できます。"
-    Order = 14
+    Order = 15
 
         [[[parameter Autoscale]]]
         Label = Autoscale
@@ -284,9 +293,24 @@ Order = 10
         Widget.Plugin = pico.form.BooleanCheckBox
         Widget.Label = Start and stop execute instances automatically
 
+	## Scheduler VM
+        [[[parameter UseLowPrio]]]
+        Label = Spot
+        DefaultValue = True
+        Widget.Plugin = pico.form.BooleanCheckBox
+        Widget.Label = Spot Scheduler VM
+
+        [[[parameter SpotMaxPrice]]]
+        Label = Max Price
+        DefaultValue = -1
+        Description = Max price for Spot VMs in USD (value of -1 will not evict based on price)
+        Config.Plugin = pico.form.NumberTextBox
+        Conditions.Excluded := UseLowPrio isnt true
+        Config.MinValue = -1
+
 	## HPC settings
         [[[parameter HPCMaxScalesetSize]]]
-        Label = Max VMs per Scaleset
+        Label = Max VMs / VMSS
         Description = The maximum number of VMs created per VM Scaleset e.g. switch in Slurm.
         DefaultValue = 1200
         Config.Plugin = pico.form.NumberTextBox
@@ -318,7 +342,7 @@ Order = 10
 
 	## HPC settings
         [[[parameter HTCMaxScalesetSize]]]
-        Label = Max VMs per Scaleset
+        Label = Max VMs / VMSS
         Description = The maximum number of VMs created per VM Scaleset e.g. switch in Slurm.
         DefaultValue = 1200
         Config.Plugin = pico.form.NumberTextBox
@@ -348,7 +372,7 @@ Order = 10
         Config.MinValue = -1
 
     [[parameters Networking]]
-    Order = 15
+    Order = 16
 
         [[[parameter SubnetId]]]
         Label = Subnet ID
@@ -365,7 +389,7 @@ Order = 20
 
         [[[parameter DESKTOP_INSTALL]]]
         Label = Desktop installation
-        DefaultValue = True
+        DefaultValue = False
         Widget.Plugin = pico.form.BooleanCheckBox
         Widget.Label = Desktop installation
 
@@ -580,56 +604,68 @@ Order = 30
 Order = 40
 
     [[parameters Anaconda Config Settings]]
-    Description = Master Node Only: Anaconda Parameter Configurations
+    Description = Scheduler Node Only: Anaconda Parameter Configurations fro SCRIPT USER(default: azureuser)
     Order = 41
 
         [[[parameter configuration_Anaconda_env_name]]]
-        Label = Anaconda Env Name
+        Label = Environement Name
         DefaultValue = py37
-        Config.Label = Anaconda Python Environment Name
 
         [[[parameter configuration_Anaconda_python_version]]]
         Label = Python Version
         DefaultValue = 3.7
-        Config.Label = Anaconda Python Version
 
         [[[parameter configuration_Anaconda_package]]]
         Label = Anaconda Package
         DefaultValue = anaconda
-        Config.Label = Anaconda Installation Package Name
 
         [[[parameter Anaconda_package_set]]]
-        Label = Anaconda Typical Packages
+        Label = Preset Packages
         config.plugin = pico.control.AutoCompleteDropdown
+        DefaultValue = None
             [[[[list Config.Entries]]]]
             Name = Typical 1
             Label = Typical 1
             [[[[list Config.Entries]]]]
             Name = ROS
             Label = ROS
+            [[[[list Config.Entries]]]]
+            Name = None
+            Label = None
 
     [[parameters Jupyter Lab Settings]]
-    Description = Master Node Only: Jupyter Lab Configurations
+    Description = Scheduler Node Only: If you use only jupyterlab, admin user is SCRIPT USER.
     Order = 51
 
+        [[[parameter JUPYTERLAB_VERSION]]]
+        Label = JupyterLab Ver
+        Config.Label = Jupterlab Version
+        DefaultValue = 2.1.5
+
         [[[parameter JUPYTERLAB_PASS]]]
-        Label = JupyterLab Password
-        Config.Label = Jupterlab Password
+        Label = JupyterLab Pass
+        DefaultValue = Microsoft123! 
+        ParameterType = Password
 
         [[[parameter JUPYTERLABTOKEN]]]
-        Label = Jupyterlab Token
+        Label = JupyterLab Token
         DefaultValue = 808b782a-c8ab-4437-8192-f138d7817aa9
-        Config.Label = Jupyterlab Tokne   
 
     [[parameters Jupyter Hub Settings]]
-    Description = Jupyter Hub Settings
+    Description = Scheduler Node Only: If you use jupyter hub, admin user is used as below(default is jupyterhub[/shared/home/jupyterhub]).
     Order = 52 
 
         [[[parameter JUPYTERHUB_INSTALL]]]
         Label = Jupyter Hub Install
-        DefaultValue = false
+        DefaultValue = True
         ParameterType = Boolean
 
+        [[[parameter JUPYTER_ADMIN]]]
+        Label = Jupyter Admin User
+        Config.Label = Jupyter Admin User
+        DefaultValue = jupyterhub
+
         [[[parameter JUPYTERHUB_USER_PASS]]]
-        Label = JupyterHub User Password
-        Config.Label = JupterHUb User Password
+        Label = Admin Password
+        DefaultValue = Microsoft123!
+        ParameterType = Password
