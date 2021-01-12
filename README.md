@@ -1,5 +1,7 @@
 # Azure CycleCloud テンプレート for AI開発ツールとslurmクラスタ
 
+![Alt Text](https://github.com/hirtanak/cyclecloud-ai01/raw/master/20210112-jupyterlab-slurm-demo.gif)
+
 [Azure CycleCloud](https://docs.microsoft.com/en-us/azure/cyclecloud/) はMicrosoft Azure上で簡単にCAE/HPC/Deep Learning用のクラスタ環境を構築できるソリューションです。
 
 Azure CyceCloudのインストールに関しては、[こちら](https://docs.microsoft.com/en-us/azure/cyclecloud/quickstart-install-cyclecloud) のドキュメントを参照してください。
