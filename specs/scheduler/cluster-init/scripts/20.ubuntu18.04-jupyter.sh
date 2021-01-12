@@ -65,7 +65,7 @@ chown -R ${CUSER}:${CUSER} ${HOMEDIR}/.jupyter/
 if [[ ${JUPYTERHUB_INSTALL} == "True" ]] || [[ ${JUPYTERHUB_INSTALL} == "true" ]]; then
     echo "時間がかかるので必須でない場合パスする"
 else
-    echo "jupyterhubがインストールされない場合にインストールする" && exit 0
+    echo "jupyterhubがインストールされない場合にインストールする"
     ${HOMEDIR}/anaconda/bin/conda install -n ${ANACONDAENVNAME} -c conda-forge nodejs==14.15.1
 fi
 ${HOMEDIR}/anaconda/bin/conda install -n ${ANACONDAENVNAME} -c conda-forge jupyterlab==${JUPYTERLAB_VERSION}
@@ -95,17 +95,17 @@ if [[ ${JUPYTERLAB_PASS} = None ]]; then
    JUPYTERLAB_PASS=password123!
 fi
 # expect
-apt-get install -y expect
-cp -rf ${CYCLECLOUD_SPEC_PATH}/files/expect.sh ${HOMEDIR}/expect.sh
-chown ${CUSER}:${CUSER} ${HOMEDIR}/expect.sh
-chmod +x ${HOMEDIR}/expect.sh
-set +u
-sed -i -e "s/EXPECTPASSWORD/${JUPYTERLAB_PASS}/g" ${HOMEDIR}/expect.sh
-sed -i -e "3c log_file -a /shared/home/${CUSER}/expect.log" ${HOMEDIR}/expect.sh
-sed -i -e "7c spawn env LANG=C /shared/home/${CUSER}/anaconda/bin/jupyter-notebook password" ${HOMEDIR}/expect.sh
-expect -d ${HOMEDIR}/expect.sh
-chown ${CUSER}:${CUSER} ${HOMEDIR}/expect.log
-set -u
+#apt-get install -y expect
+#cp -rf ${CYCLECLOUD_SPEC_PATH}/files/expect.sh ${HOMEDIR}/expect.sh
+#chown ${CUSER}:${CUSER} ${HOMEDIR}/expect.sh
+#chmod +x ${HOMEDIR}/expect.sh
+#set +u
+#sed -i -e "s/EXPECTPASSWORD/${JUPYTERLAB_PASS}/g" ${HOMEDIR}/expect.sh
+#sed -i -e "3c log_file -a /shared/home/${CUSER}/expect.log" ${HOMEDIR}/expect.sh
+#sed -i -e "7c spawn env LANG=C /shared/home/${CUSER}/anaconda/bin/jupyter-notebook password" ${HOMEDIR}/expect.sh
+#expect -d ${HOMEDIR}/expect.sh
+#chown ${CUSER}:${CUSER} ${HOMEDIR}/expect.log
+#set -u
 # password replace 2020/12/22
 #mv ${CYCLECLOUD_SPEC_PATH}/files/jupyter_notebook_config.json ${HOMEDIR}/.jupyter/
 #chown ${CUSER}:${CUSER} ${HOMEDIR}/.jupyter/jupyter_notebook_config.json
@@ -160,10 +160,12 @@ fi
 
 # .bashrc 追加
 set +eu
-CMD1=$(grep conda.sh ${HOMEDIR}/.bashrc | head -1)
-CMD2=$(grep "conda activate" ${HOMEDIR}/.bashrc | head -1)
-if [[ -z ${CMD1} ]] && [[ -z ${CMD2} ]]; then
-    (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh"; echo "conda activate ${ANACONDAENVNAME}") >> ${HOMEDIR}/.bashrc
+(grep conda.sh ${HOMEDIR}/.bashrc | head -1) > /shared/CONDA1
+(grep "conda activate" ${HOMEDIR}/.bashrc | head -1) > /shared/CONDA2
+CMD1=$(cat /shared/CONDA1)
+CMD2=$(cat /shared/CONDA2)
+if [[ -z ${CMD1} ]]; then
+    (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh") >> ${HOMEDIR}/.bashrc
 fi
 if [[ ! -z ${CMD1} ]] && [[ -z ${CMD2} ]]; then
     (echo "conda activate ${ANACONDAENVNAME}") >> ${HOMEDIR}/.bashrc

@@ -42,21 +42,29 @@ else
 fi
 
 if [[ ${PLATFORM} == "ubuntu" ]] && [[ ${PLATFORM_VERSION} == "18.04" ]]; then
-    # Driverチェック
-    CMD2=$(cat /proc/driver/nvidia/version | head -1 | awk '{print $3}') | exit 0
-    if [[ -z ${CMD2} ]]; then        
+    # Driverインストールチェック
+    if [[ ! -f /proc/driver/nvidia/version  ]]; then        
         echo "install NVIDIA driver"
         wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin -O ${HOMEDIR}/cuda-ubuntu1804.pin
         mv ${HOMEDIR}/cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
         apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
         add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /"
         apt-get update
-        apt-get install -y cuda	
-#	reboot
+        apt-get install -y cuda
+	set +eu
     fi
-    echo $CMD2 #nvidia-smi
+    # リブートチェック＆実施
+    if [[ ! -f /shared/REBOOT ]]; then
+        echo "reboot" > /shared/REBOOT
+        reboot
+    else
+        echo "skip to reboot"
+    fi
+    set -eu
+    echo "${CMD}"
+    nvidia-smi
 else
-    echo "NVIDIA Driver has already indstalled"
+    echo "NVIDIA Driver has already indstalled.(rebooted)"
 fi
 set -u
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020 Hiroshi Tanaka, hirtanak@gmail.com @hirtanak
+# Copyright (c) 2020-2021 Hiroshi Tanaka, hirtanak@gmail.com @hirtanak
 set -exuv
 
 echo "starting 10.ubuntu18.04.sh"
@@ -66,15 +66,6 @@ if [[ ! -f ${HOMEDIR}/anaconda.sh ]]; then
    echo "end anaconda installation"
 fi
 
-# env settingsg
-set +eu
-CMD1=$(grep codna ${HOMEDIR}/.bashrc | head -1)
-if [[ -z ${CMD1} ]]; then
-   (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh") >> ${HOMEDIR}/.bashrc
-fi
-chmod +x ${HOMEDIR}/anaconda/etc/profile.d/conda.sh
-set -eu
-
 # anaconda setting
 ANACONDAENVNAME=$(jetpack config ANACONDAENVNAME)
 ANACONDAPYTHON_VERSION=$(jetpack config ANACONDAPYTHON_VERSION)
@@ -97,6 +88,21 @@ set -u
 # 他のユーザでも利用できるように権限設定
 chmod -R 776 ${HOMEDIR}/anaconda
 
+# .bashrc 修正
+set +eu
+(grep codna ${HOMEDIR}/.bashrc | head -1) > /shared/CONDA1
+CMD1=$(cat /shared/CONDA1)
+if [[ -z ${CMD1} ]]; then
+    # なければ追加
+    (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh") >> ${HOMEDIR}/.bashrc
+fi
+chmod +x ${HOMEDIR}/anaconda/etc/profile.d/conda.sh
+set -eu
+
+# ログテキスト処理の機能追加
+apt install -qq python-pip -y
+sudo -u root pip install TxtStyle
+wget -q https://raw.githubusercontent.com/hirtanak/scripts/master/.txts.conf -O /root/.txts.conf
 
 popd
 rm -rf $tmpdir

@@ -41,7 +41,7 @@ ANACONDAPACKAGE=$(jetpack config ANACONDAPACKAGE)
 userdel ${JUPYTER_ADMIN} | exit 0
 
 groupadd ${JUPYTER_ADMIN} -g 19000 | exit 0
-useradd -m ${JUPYTER_ADMIN} -g ${JUPYTER_ADMIN} --home-dir ${HOMEDIR} -u 19000 --password ${JUPYTERHUB_USER_PASS} -s /bin/bash | exit 0
+eval $(useradd -m ${JUPYTER_ADMIN} -g ${JUPYTER_ADMIN} --home-dir ${HOMEDIR} -u 19000 --password ${JUPYTERHUB_USER_PASS} -s /bin/bash)
 mkdir -p /shared/home/${JUPYTER_ADMIN}/notebook
 chown ${JUPYTER_ADMIN}:${JUPYTER_ADMIN} ${HOMEDIR}/notebook | exit 0
 
@@ -132,6 +132,13 @@ mkdir -p ${HOMEDIR}/notebook
 chown ${JUPYTER_ADMIN}:${JUPYTER_ADMIN} ${HOMEDIR}/notebook
 #sed -i -e "s:^# c.Spawner.notebook_dir = '':c.Spawner.notebook_dir = '~/notebook':" ${HOMEDIR}/.jupyter/jupyterhub_config.py
 
+## Configure JupyterHub's Spawner to start with a JupyterLab that is aware of the JupyterHub
+sed -i -e "728c c.Spawner.cmd = ['jupyter-labhub']" ${HOMEDIR}/.jupyter/jupyterhub_config.py
+
+# ssl config: SSL設定(mycert.key, mykey.key)は20.で作成済み
+sed -i -e "s!# c.JupyterHub.ssl_cert = ''!c.JupyterHub.ssl_cert = u'/shared/home/${CUSER}/.jupyter/mycert.pem'!" ${HOMEDIR}/.jupyter/jupyterhub_config.py
+sed -i -e "s!# c.JupyterHub.ssl_key = ''!c.JupyterHub.ssl_key = u'/shared/home/${CUSER}/.jupyter/mycert.key'!" ${HOMEDIR}/.jupyter/jupyterhub_config.py
+
 ###追加利用ユーザ設定(jupyterhub)--------------------------------------
 set +u
 cat /etc/passwd | grep "/bin/bash" | cut -d: -f1 > ${HOMEDIR}/chekceduser-tmp.txt
@@ -189,19 +196,12 @@ esac
 set -u
 ###----------------------------------------------------
 
-###----------------------------------------------------
-# ssl config: SSL設定(mycert.key, mykey.key)は20.で作成済み
-sed -i -e "s!# c.JupyterHub.ssl_cert = ''!c.JupyterHub.ssl_cert = u'/shared/home/${CUSER}/.jupyter/mycert.pem'!" ${HOMEDIR}/.jupyter/jupyterhub_config.py
-sed -i -e "s!# c.JupyterHub.ssl_key = ''!c.JupyterHub.ssl_key = u'/shared/home/${CUSER}/.jupyter/mycert.key'!" ${HOMEDIR}/.jupyter/jupyterhub_config.py
-###----------------------------------------------------
-
 ###拡張機能--------------------------------------------
 ## 2020/12/25 対策: pam_loginuid(login:session): 
-chmod 755 /proc/self/loginuid | exit 0
-export PATH=${HOMEDIR}/anaconda/envs/${JUPYTER_ADMIN}/bin/:$PATH
-
-## Configure JupyterHub's Spawner to start with a JupyterLab that is aware of the JupyterHub
-sed -i -e "728c c.Spawner.cmd = ['jupyter-labhub']" ${HOMEDIR}/.jupyter/jupyterhub_config.py
+#chmod 755 /proc/self/loginuid | exit 0
+#export PATH=${HOMEDIR}/anaconda/envs/${JUPYTER_ADMIN}/bin/:$PATH
+source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh
+conda activate ${JUPYTER_ADMIN}
 
 jupyter labextension enable
 jupyter labextension install -y @jupyterlab/hub-extension
@@ -218,7 +218,7 @@ jupyter labextension install -y @jupyterlab/toc
 
 #${HOMEDIR}/anaconda/bin/conda install -n ${JUPYTER_ADMIN} ipywidgets
 
-jupyter labextension install -y @jupyter-widgets/jupyterlab-manager
+#jupyter labextension install -y @jupyter-widgets/jupyterlab-manager
 
 #jupyter nbextension enable --sys-prefix widgetsnbextension
 
@@ -234,6 +234,7 @@ jupyter labextension install -y @jupyter-widgets/jupyterlab-manager
 #${HOMEDIR}/anaconda/envs/${JUPYTER_ADMIN}/bin/jlpm run build  # Compile the TypeScript sources to Javascript
 #${HOMEDIR}/anaconda/envs/${JUPYTER_ADMIN}/bin/jupyter labextension install  # Install the current directory as an extension
 
+# jupyterlab_slurm 拡張パッケージインストール
 pip install --quiet jupyterlab_slurm
 jupyter labextension install jupyterlab-slurm
 
@@ -287,10 +288,12 @@ systemctl status jupyterhub
 
 # .bashrc 修正
 set +eu 
-CMD1=$(grep conda.sh ${HOMEDIR}/.bashrc | head -1)
-CMD2=$(grep "conda activate" ${HOMEDIR}/.bashrc | head -1)
-if [[ -z ${CMD1} ]] && [[ -z ${CMD2} ]]; then
-    (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh"; echo "conda activate ${JUPYTER_ADMIN}") >> ${HOMEDIR}/.bashrc
+(grep conda.sh ${HOMEDIR}/.bashrc | head -1) > /shared/CONDA1
+(grep "conda activate" ${HOMEDIR}/.bashrc | head -1) > /shared/CONDA2
+CMD1=$(cat /shared/CONDA1)
+CMD2=$(cat /shared/CONDA2)
+if [[ -z ${CMD1} ]]; then
+    (echo "source ${HOMEDIR}/anaconda/etc/profile.d/conda.sh") >> ${HOMEDIR}/.bashrc
 fi
 if [[ ! -z ${CMD1} ]] && [[ -z ${CMD2} ]]; then
     (echo "conda activate ${JUPYTER_ADMIN}") >> ${HOMEDIR}/.bashrc
@@ -302,21 +305,6 @@ cp -rf ${CYCLECLOUD_SPEC_PATH}/files/addcondaenv.sh ${HOMEDIR}/addcondaenv.sh
 chmod +x ${HOMEDIR}/addcondaenv.sh
 chown ${JUPYTER_ADMIN}:${JUPYTER_ADMIN} ${HOMEDIR}/addcondaenv.sh
 sed -i -e "s:\${HOMEDIR}:${HOMEDIR}:g" ${HOMEDIR}/addcondaenv.sh
-
-# ログテキスト処理の機能追加
-apt install -qq python-pip -y
-who
-users
-sudo -u root pip install --log /root/log01.log TxtStyle
-wget -q https://raw.githubusercontent.com/hirtanak/scripts/master/.txts.conf -O /root/.txts.conf
-#mkdir -p /.local
-#chown ${JUPYTER_ADMIN}:${JUPYTER_ADMIN} /.local
-#sudo -u ${JUPYTER_ADMIN} pip install --log ${HOMEDIR}/log01.log TxtStyle
-wget -q https://raw.githubusercontent.com/hirtanak/scripts/master/.txts.conf -O ${HOMEDIR}/.txts.conf
-chown ${JUPYTER_ADMIN}:${JUPYTER_ADMIN} ${HOMEDIR}/.txts.conf
-
-# パーミッションの修正
-chown -R ${JUPYTER_ADMIN}:${JUPYTER_ADMIN} ${HOMEDIR}
 
 CMD=$(curl -s ifconfig.io)
 echo "https://${CMD}:8443" 

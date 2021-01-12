@@ -43,7 +43,6 @@ Autoscale = $Autoscale
 
         # User settings
         SCRIPTUSER = $SCRIPTUSER
-        JUPYTER_ADMIN= $JUPYTER_ADMIN
 	DESKTOP_INSTALL = $DESKTOP_INSTALL
 
         # solver configurations
@@ -56,8 +55,12 @@ Autoscale = $Autoscale
         JUPYTERLAB_PASS = $JUPYTERLAB_PASS
         JUPYTERLABTOKEN = $JUPYTERLABTOKEN
 	# Jupyter Hub
+        JUPYTER_ADMIN= $JUPYTER_ADMIN
 	JUPYTERHUB_INSTALL = $JUPYTERHUB_INSTALL
 	JUPYTERHUB_USER_PASS = $JUPYTERHUB_USER_PASS
+
+	# Addtional Settings
+	dl_package_set = $dl_package_set
 
         [[[cluster-init cyclecloud]]]
         [[[cluster-init ai01:default:2.4.1]]]
@@ -609,11 +612,11 @@ Order = 40
 
         [[[parameter configuration_Anaconda_env_name]]]
         Label = Environement Name
-        DefaultValue = py37
+        DefaultValue = py38
 
         [[[parameter configuration_Anaconda_python_version]]]
         Label = Python Version
-        DefaultValue = 3.7
+        DefaultValue = 3.8
 
         [[[parameter configuration_Anaconda_package]]]
         Label = Anaconda Package
@@ -643,7 +646,7 @@ Order = 40
         DefaultValue = 2.1.5
 
         [[[parameter JUPYTERLAB_PASS]]]
-        Label = JupyterLab Pass
+        Label = JupyterLab Pass(WIP)
         DefaultValue = Microsoft123! 
         ParameterType = Password
 
@@ -652,7 +655,7 @@ Order = 40
         DefaultValue = 808b782a-c8ab-4437-8192-f138d7817aa9
 
     [[parameters Jupyter Hub Settings]]
-    Description = Scheduler Node Only: If you use jupyter hub, admin user is used as below(default is jupyterhub[/shared/home/jupyterhub]).
+    Description = Scheduler Node Only: If you use jupyter hub, admin user is used as below(default is jupyterhub[/shared/home/jupyterhub]). :(colon) is not acceptable.
     Order = 52 
 
         [[[parameter JUPYTERHUB_INSTALL]]]
@@ -669,3 +672,16 @@ Order = 40
         Label = Admin Password
         DefaultValue = Microsoft123!
         ParameterType = Password
+
+    [[parameters Deep Learning Settings]]
+    Description = Automatic install settings
+    Order = 53
+
+        [[[parameter dl_package_set]]]
+        Label = Preset Packages
+        config.plugin = pico.control.AutoCompleteDropdown
+        DefaultValue = None
+            [[[[list Config.Entries]]]]
+            Name = RL-mario
+            Label = Reinforcement Learning:mario
+
